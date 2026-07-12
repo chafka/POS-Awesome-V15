@@ -44,7 +44,7 @@ export interface PaymentSubmissionOptions {
 }
 
 export interface SubmissionCallbacks {
-	onSuccess?: (_message: any) => void;
+	onSuccess?: (_message: any, _submittedDocument?: any) => void;
 	onPrint?: (
 		_doc: any,
 		_options?: {
@@ -1156,7 +1156,7 @@ export function usePaymentSubmission(options: PaymentSubmissionOptions) {
 			}
 
 			if (onSuccess) {
-				onSuccess(r.message);
+				onSuccess(r.message, submittedDocument);
 			}
 
 			return { success: true, message: r.message };
@@ -1197,12 +1197,15 @@ export function usePaymentSubmission(options: PaymentSubmissionOptions) {
 					}
 
 					if (onSuccess) {
-						onSuccess({
-							name: doc?.name,
-							doctype: doc?.doctype,
-							docstatus: 1,
-							recovered: true,
-						});
+						onSuccess(
+							{
+								name: doc?.name,
+								doctype: doc?.doctype,
+								docstatus: 1,
+								recovered: true,
+							},
+							doc,
+						);
 					}
 
 					return {

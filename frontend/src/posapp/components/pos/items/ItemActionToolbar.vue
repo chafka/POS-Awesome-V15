@@ -1,6 +1,6 @@
 <template>
 	<v-card
-		class="cards mb-0 mt-3 dynamic-padding"
+		class="cards mb-0 mt-3 dynamic-padding item-action-toolbar-hidden"
 		:class="{ 'cards--with-mobile-offset': reserveBottomDockSpace }"
 	>
 		<v-row no-gutters align="center" justify="center" class="dynamic-spacing-sm">
@@ -26,21 +26,7 @@
 					readonly
 				></v-text-field>
 			</v-col>
-			<v-col cols="12" sm="4" class="dynamic-margin-xs">
-				<v-btn-toggle
-					:model-value="itemsView"
-					@update:model-value="$emit('update:itemsView', $event)"
-					color="primary"
-					group
-					density="compact"
-					rounded
-					class="view-toggle-btn"
-				>
-					<v-btn size="small" value="list">{{ __("List") }}</v-btn>
-					<v-btn size="small" value="card">{{ __("Card") }}</v-btn>
-				</v-btn-toggle>
-			</v-col>
-			<v-col cols="6" sm="4" class="dynamic-margin-xs">
+			<v-col cols="6" sm="6" class="dynamic-margin-xs">
 				<v-btn
 					size="small"
 					block
@@ -52,7 +38,7 @@
 					{{ offersCount }} {{ __("Offers") }}
 				</v-btn>
 			</v-col>
-			<v-col cols="6" sm="4" class="dynamic-margin-xs">
+			<v-col cols="6" sm="6" class="dynamic-margin-xs">
 				<v-btn
 					size="small"
 					block
@@ -75,7 +61,6 @@ const frappe = window.frappe;
 defineProps({
 	modelValue: { type: String, default: "ALL" }, // item_group
 	itemsGroup: { type: Array, default: () => [] },
-	itemsView: { type: String, default: "card" },
 	posProfile: { type: Object, required: true },
 	activePriceList: { type: String, default: "" },
 	offersCount: { type: Number, default: 0 },
@@ -83,10 +68,14 @@ defineProps({
 	reserveBottomDockSpace: { type: Boolean, default: false },
 });
 
-defineEmits(["update:modelValue", "update:itemsView", "open-offers", "open-coupons"]);
+defineEmits(["update:modelValue", "open-offers", "open-coupons"]);
 </script>
 
 <style scoped>
+.item-action-toolbar-hidden {
+	display: none !important;
+}
+
 .action-btn-consistent {
 	height: 36px !important;
 	margin-top: var(--dynamic-xs) !important;
@@ -100,12 +89,6 @@ defineEmits(["update:modelValue", "update:itemsView", "open-offers", "open-coupo
 .action-btn-consistent:hover {
 	background-color: rgba(var(--v-theme-primary), 0.1) !important;
 	transform: none !important;
-}
-
-.view-toggle-btn {
-	height: 36px;
-	border: 1px solid var(--pos-border-light);
-	border-radius: var(--pos-radius-sm);
 }
 
 .dynamic-padding {
@@ -147,10 +130,6 @@ defineEmits(["update:modelValue", "update:itemsView", "open-offers", "open-coupo
 
 	.dynamic-spacing-sm {
 		padding: var(--dynamic-xs) !important;
-	}
-
-	.view-toggle-btn {
-		width: 100%;
 	}
 
 	.action-btn-consistent {

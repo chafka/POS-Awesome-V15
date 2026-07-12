@@ -1,33 +1,5 @@
 <template>
 	<v-row dense>
-		<v-col cols="12" sm="6">
-			<v-btn
-				block
-				color="accent"
-				theme="dark"
-				prepend-icon="mdi-content-save"
-				@click="$emit('save-and-clear')"
-				class="summary-btn"
-				data-pos-keyboard-target="invoice-action"
-				:loading="saveLoading"
-			>
-				{{ __("Save & Clear") }}
-			</v-btn>
-		</v-col>
-		<v-col cols="12" sm="6">
-			<v-btn
-				block
-				color="warning"
-				theme="dark"
-				prepend-icon="mdi-tray-full"
-				@click="$emit('load-drafts')"
-				class="white-text-btn summary-btn"
-				data-pos-keyboard-target="invoice-action"
-				:loading="loadDraftsLoading"
-			>
-				{{ __("Drafts") }}
-			</v-btn>
-		</v-col>
 		<v-col cols="12" sm="6" v-if="pos_profile.custom_allow_select_sales_order == 1">
 			<v-btn
 				block
@@ -42,7 +14,7 @@
 				{{ __("Select S.O") }}
 			</v-btn>
 		</v-col>
-		<v-col cols="12" sm="6">
+		<v-col cols="12" sm="6" class="invoice-mgmt-btn-hidden">
 			<v-btn
 				block
 				color="deep-purple"
@@ -56,11 +28,12 @@
 				{{ __("Invoice Mgmt") }}
 			</v-btn>
 		</v-col>
-		<v-col cols="12" sm="6">
+		<v-col cols="12">
 			<v-btn
 				block
 				color="error"
 				theme="dark"
+				size="large"
 				prepend-icon="mdi-close-circle"
 				@click="$emit('cancel-sale')"
 				class="summary-btn"
@@ -141,8 +114,6 @@ const props = defineProps({
 		required: true,
 		default: () => ({}),
 	},
-	saveLoading: Boolean,
-	loadDraftsLoading: Boolean,
 	selectOrderLoading: Boolean,
 	cancelLoading: Boolean,
 	invoiceManagementLoading: Boolean,
@@ -153,8 +124,6 @@ const props = defineProps({
 });
 
 defineEmits([
-	"save-and-clear",
-	"load-drafts",
 	"select-order",
 	"cancel-sale",
 	"open-invoice-management",
@@ -171,6 +140,11 @@ const showCustomerDisplayButton = computed(() =>
 </script>
 
 <style scoped>
+/* Hidden by default; open via the F12 shortcut instead of a visible button. */
+.invoice-mgmt-btn-hidden {
+	display: none;
+}
+
 .white-text-btn {
 	color: var(--pos-text-primary) !important;
 }

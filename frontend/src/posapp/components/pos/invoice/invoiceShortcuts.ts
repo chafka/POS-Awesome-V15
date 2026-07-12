@@ -101,6 +101,7 @@ interface InvoiceShortcutsVm {
 	remove_item?: (_item: Record<string, unknown>) => void;
 	get_draft_invoices?: () => void;
 	save_and_clear_invoice?: () => void;
+	open_invoice_management?: (_targetTab?: string, _draftSource?: string) => void;
 	get_invoice_doc?: () => {
 		rounded_total?: number;
 		grand_total?: number;
@@ -145,6 +146,12 @@ const invoiceShortcuts: Record<string, unknown> & ThisType<InvoiceShortcutsVm> =
 			if (key === "F8") {
 				consumeEvent(event);
 				this.eventBus.emit("lock_pos_screen");
+				return;
+			}
+
+			if (key === "F12") {
+				consumeEvent(event);
+				this.open_invoice_management?.();
 				return;
 			}
 

@@ -100,6 +100,42 @@
 						</div>
 					</div>
 
+					<div class="menu-section-block">
+						<div class="menu-section-heading">
+							<div class="menu-section-title">{{ __("Fiscal Printer") }}</div>
+							<div class="menu-section-subtitle">
+								{{ __("Fiscal device operations and shift closing.") }}
+							</div>
+						</div>
+
+						<div class="quick-actions-grid">
+							<div
+								v-for="(row, rowIndex) in fiscalPrinterRows"
+								:key="`fiscal-row-${rowIndex}`"
+								class="quick-actions-row"
+							>
+								<button
+									v-for="action in row"
+									:key="action.id"
+									type="button"
+									class="quick-action-card"
+									:class="`quick-action-card--${action.tone}`"
+									:disabled="action.disabled"
+									:data-test="`quick-action-${action.id}`"
+									@click="handleAction(action)"
+								>
+									<div class="quick-action-card__icon">
+										<v-icon color="white" size="18">{{ action.icon }}</v-icon>
+									</div>
+									<div class="quick-action-card__copy">
+										<div class="quick-action-card__title">{{ action.label }}</div>
+										<div class="quick-action-card__subtitle">{{ action.subtitle }}</div>
+									</div>
+								</button>
+							</div>
+						</div>
+					</div>
+
 					<button
 						type="button"
 						class="settings-launch-card"
@@ -280,6 +316,65 @@
 		</v-card>
 	</v-dialog>
 
+	<!-- Cash In / Cash Out Dialog -->
+	<v-dialog v-model="showCashAmountDialog" max-width="360" persistent>
+		<v-card class="pos-themed-card">
+			<v-card-title class="text-h6 d-flex align-center">
+				<v-icon start color="primary" class="mr-2">
+					{{ cashAmountMode === "in" ? "mdi-cash-plus" : "mdi-cash-minus" }}
+				</v-icon>
+				{{ cashAmountMode === "in" ? __("Cash In") : __("Cash Out") }}
+			</v-card-title>
+
+			<v-card-text>
+				<v-text-field
+					v-model="cashAmountValue"
+					type="number"
+					:label="__('Amount')"
+					variant="outlined"
+					density="compact"
+					autofocus
+					min="0"
+					step="0.01"
+				/>
+			</v-card-text>
+
+			<v-card-actions class="pa-4 pt-0">
+				<v-spacer />
+				<v-btn color="grey" variant="text" @click="closeCashAmountDialog" :disabled="cashAmountSubmitting">
+					{{ __("Cancel") }}
+				</v-btn>
+				<v-btn color="primary" :loading="cashAmountSubmitting" @click="submitCashAmount">
+					{{ __("Confirm") }}
+				</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
+	<!-- Fiscal Printer Action Confirmation Dialog -->
+	<v-dialog v-model="showFiscalConfirmDialog" max-width="360" persistent>
+		<v-card class="pos-themed-card">
+			<v-card-title class="text-h6 d-flex align-center">
+				<v-icon start color="primary" class="mr-2">mdi-printer-check</v-icon>
+				{{ fiscalConfirmTitle }}
+			</v-card-title>
+
+			<v-card-text>
+				{{ fiscalConfirmMessage }}
+			</v-card-text>
+
+			<v-card-actions class="pa-4 pt-0">
+				<v-spacer />
+				<v-btn color="grey" variant="text" @click="closeFiscalConfirmDialog" :disabled="fiscalConfirmSubmitting">
+					{{ __("Cancel") }}
+				</v-btn>
+				<v-btn color="primary" :loading="fiscalConfirmSubmitting" @click="runFiscalConfirmAction">
+					{{ __("Confirm") }}
+				</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
 	<QzTrayDialog v-model="showQzTrayDialog" />
 
 	<!-- Notification Snackbars -->
@@ -307,6 +402,7 @@ const FALLBACK_LANGUAGES = [
 ];
 
 import { useLastInvoicePrinting } from "../../composables/core/useLastInvoicePrinting";
+import { useFiscalPrinter } from "../../composables/core/useFiscalPrinter";
 import { useUpdateStore } from "../../stores/updateStore";
 import { useEmployeeStore } from "../../stores/employeeStore";
 import { storeToRefs } from "pinia";
@@ -326,10 +422,18 @@ export default {
 	},
 	setup() {
 		const { printLastInvoice } = useLastInvoicePrinting();
+		const fiscalPrinter = useFiscalPrinter();
 		const updateStore = useUpdateStore();
 		const employeeStore = useEmployeeStore();
 		const { currentCashier, currentCashierDisplay } = storeToRefs(employeeStore);
-		return { printLastInvoice, updateStore, employeeStore, currentCashier, currentCashierDisplay };
+		return {
+			printLastInvoice,
+			fiscalPrinter,
+			updateStore,
+			employeeStore,
+			currentCashier,
+			currentCashierDisplay,
+		};
 	},
 	data() {
 		return {
@@ -337,6 +441,15 @@ export default {
 			activePanel: "main",
 			showLanguageDialog: false,
 			showQzTrayDialog: false,
+			showCashAmountDialog: false,
+			cashAmountMode: "in",
+			cashAmountValue: null,
+			cashAmountSubmitting: false,
+			showFiscalConfirmDialog: false,
+			fiscalConfirmTitle: "",
+			fiscalConfirmMessage: "",
+			fiscalConfirmSubmitting: false,
+			pendingFiscalAction: null,
 			selectedLanguage: "en",
 			currentLanguage: "en",
 			availableLanguages: FALLBACK_LANGUAGES,
@@ -404,14 +517,6 @@ export default {
 					tone: "primary",
 					handler: "openEmployeeSwitch",
 				},
-				{
-					id: "lock-screen",
-					label: __("Lock Screen"),
-					subtitle: __("Pause terminal until next cashier"),
-					icon: "mdi-lock-outline",
-					tone: "warning",
-					handler: "lockPos",
-				},
 				this.isEnabledSetting(this.posProfile?.posa_allow_print_last_invoice)
 					? {
 							id: "print-last-invoice",
@@ -432,14 +537,49 @@ export default {
 							handler: "shareLastInvoiceAction",
 						}
 					: null,
-				{
-					id: "sync-offline-sales",
-					label: __("Sync Offline Sales"),
-					subtitle: __("Upload pending transactions"),
-					icon: "mdi-sync",
-					tone: "info",
-					handler: "syncInvoices",
-				},
+			];
+
+			return actions.filter(Boolean);
+		},
+		quickActionRows() {
+			return this.quickActions.map((action) => [action]);
+		},
+		fiscalPrinterEnabled() {
+			return this.isEnabledSetting(this.posProfile?.posa_enable_fiscal_printer);
+		},
+		fiscalPrinterActions() {
+			const fiscalEnabled = this.fiscalPrinterEnabled;
+			const actions = [
+				fiscalEnabled
+					? {
+							id: "x-report",
+							label: __("X Report"),
+							subtitle: __("Print non-resetting turnover report"),
+							icon: "mdi-file-chart-outline",
+							tone: "info",
+							handler: "xReportAction",
+						}
+					: null,
+				fiscalEnabled
+					? {
+							id: "cash-in",
+							label: __("Cash In"),
+							subtitle: __("Record cash added to drawer"),
+							icon: "mdi-cash-plus",
+							tone: "primary",
+							handler: "cashInAction",
+						}
+					: null,
+				fiscalEnabled
+					? {
+							id: "cash-out",
+							label: __("Cash Out"),
+							subtitle: __("Record cash removed from drawer"),
+							icon: "mdi-cash-minus",
+							tone: "warning",
+							handler: "cashOutAction",
+						}
+					: null,
 				!this.posProfile?.posa_hide_closing_shift
 					? {
 							id: "close-shift",
@@ -450,12 +590,42 @@ export default {
 							handler: "closeShift",
 						}
 					: null,
+				fiscalEnabled
+					? {
+							id: "z-report",
+							label: __("Z Report"),
+							subtitle: __("Print and reset turnover report"),
+							icon: "mdi-file-chart",
+							tone: "warning",
+							handler: "zReportAction",
+						}
+					: null,
+				fiscalEnabled
+					? {
+							id: "duplicate-receipt",
+							label: __("Duplicate Receipt"),
+							subtitle: __("Reprint last fiscal receipt"),
+							icon: "mdi-content-duplicate",
+							tone: "secondary",
+							handler: "duplicateReceiptAction",
+						}
+					: null,
+				fiscalEnabled
+					? {
+							id: "get-cash-amount",
+							label: __("Get Current Cash Amount"),
+							subtitle: __("Show cash registered in the fiscal printer"),
+							icon: "mdi-cash-check",
+							tone: "neutral",
+							handler: "getCashAmountAction",
+						}
+					: null,
 			];
 
 			return actions.filter(Boolean);
 		},
-		quickActionRows() {
-			return this.quickActions.map((action) => [action]);
+		fiscalPrinterRows() {
+			return this.fiscalPrinterActions.map((action) => [action]);
 		},
 		settingsSections() {
 			return [
@@ -653,6 +823,42 @@ export default {
 					this.closeMenu();
 					this.$emit("close-shift");
 					break;
+				case "xReportAction":
+					this.confirmFiscalAction(
+						__("X Report"),
+						__("Print the non-resetting X report on the fiscal printer?"),
+						() => this.fiscalPrinter.printXReport(this.posProfile),
+					);
+					break;
+				case "zReportAction":
+					this.confirmFiscalAction(
+						__("Z Report"),
+						__(
+							"Print and reset the fiscal printer's turnover report? This cannot be undone.",
+						),
+						() => this.fiscalPrinter.printZReport(this.posProfile),
+					);
+					break;
+				case "duplicateReceiptAction":
+					this.confirmFiscalAction(
+						__("Duplicate Receipt"),
+						__("Reprint the last fiscal receipt?"),
+						() => this.fiscalPrinter.printDuplicate(this.posProfile),
+					);
+					break;
+				case "getCashAmountAction":
+					this.confirmFiscalAction(
+						__("Get Current Cash Amount"),
+						__("Retrieve the current cash amount registered in the fiscal printer?"),
+						() => this.fiscalPrinter.getCashAmount(this.posProfile),
+					);
+					break;
+				case "cashInAction":
+					this.openCashAmountDialog("in");
+					break;
+				case "cashOutAction":
+					this.openCashAmountDialog("out");
+					break;
 				case "openLanguageDialog":
 					this.closeMenu();
 					this.showLanguageDialog = true;
@@ -699,6 +905,61 @@ export default {
 		},
 		openDashboard() {
 			window.location.href = "/app/posapp/dashboard";
+		},
+		openCashAmountDialog(mode) {
+			this.closeMenu();
+			this.cashAmountMode = mode;
+			this.cashAmountValue = null;
+			this.showCashAmountDialog = true;
+		},
+		closeCashAmountDialog() {
+			this.showCashAmountDialog = false;
+			this.cashAmountValue = null;
+		},
+		async submitCashAmount() {
+			const amount = Number(this.cashAmountValue);
+			if (!amount || amount <= 0) {
+				this.showNotification("Enter an amount greater than zero", "error");
+				return;
+			}
+
+			this.cashAmountSubmitting = true;
+			try {
+				if (this.cashAmountMode === "in") {
+					await this.fiscalPrinter.depositCash(this.posProfile, amount);
+				} else {
+					await this.fiscalPrinter.withdrawCash(this.posProfile, amount);
+				}
+				this.closeCashAmountDialog();
+			} finally {
+				this.cashAmountSubmitting = false;
+			}
+		},
+		confirmFiscalAction(title, message, action) {
+			this.closeMenu();
+			this.fiscalConfirmTitle = title;
+			this.fiscalConfirmMessage = message;
+			this.pendingFiscalAction = action;
+			this.showFiscalConfirmDialog = true;
+		},
+		closeFiscalConfirmDialog() {
+			this.showFiscalConfirmDialog = false;
+			this.pendingFiscalAction = null;
+		},
+		async runFiscalConfirmAction() {
+			const action = this.pendingFiscalAction;
+			if (!action) {
+				this.closeFiscalConfirmDialog();
+				return;
+			}
+
+			this.fiscalConfirmSubmitting = true;
+			try {
+				await action();
+			} finally {
+				this.fiscalConfirmSubmitting = false;
+				this.closeFiscalConfirmDialog();
+			}
 		},
 		initializeWesternNumerals() {
 			try {

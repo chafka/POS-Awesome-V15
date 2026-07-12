@@ -1401,16 +1401,21 @@ export default {
 
 .invoice-top-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: var(--dynamic-sm);
 	flex: 0 0 auto;
 }
 
 .invoice-meta-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: var(--dynamic-sm);
 	flex: 0 0 auto;
+}
+
+.invoice-top-grid:empty,
+.invoice-meta-grid:empty {
+	display: none;
 }
 
 .invoice-section-card {

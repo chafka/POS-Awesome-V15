@@ -5,7 +5,7 @@
 			:headers="effectiveHeaders"
 			:items="displayedItems"
 			class="sleek-data-table overflow-y-auto"
-			:style="{ height: 'calc(100% - 80px)' }"
+			:style="{ height: '100%' }"
 			item-key="item_code"
 			fixed-header
 			height="100%"
@@ -267,6 +267,10 @@ defineExpose({ scrollToIndex, getTableElement, tableRef });
 </script>
 
 <style scoped>
+.items-table-container {
+	height: 100%;
+}
+
 :deep(.item-row-highlighted) {
 	background-color: rgba(var(--v-theme-primary), 0.32);
 }

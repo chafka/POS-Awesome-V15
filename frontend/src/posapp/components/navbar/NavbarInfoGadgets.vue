@@ -55,7 +55,7 @@ const menu = ref(false);
 
 <style scoped>
 .info-gadgets-container {
-	display: flex;
+	display: none;
 	align-items: center;
 }
 

@@ -15,6 +15,7 @@ import {
 } from "../../../../offline/index";
 import { getValidCachedOpeningForCurrentUser } from "../../../utils/openingCache";
 import { createBootstrapSnapshotFromRegisterData } from "../../../../offline/bootstrapSnapshot";
+import { useFiscalPrinter } from "../../core/useFiscalPrinter";
 
 declare const __BUILD_VERSION__: string;
 declare const frappe: any;
@@ -85,6 +86,7 @@ export function usePosShift(openDialog?: () => void) {
 		typeof __BUILD_VERSION__ !== "undefined" ? __BUILD_VERSION__ : null;
 	const toastStore = useToastStore();
 	const uiStore = useUIStore();
+	const fiscalPrinter = useFiscalPrinter();
 
 	const pos_profile = ref<any>(null);
 	const pos_opening_shift = ref<any>(null);
@@ -230,6 +232,7 @@ export function usePosShift(openDialog?: () => void) {
 			.then((r: any) => {
 				console.log("Submit result", r);
 				if (r.message) {
+					const closedPosProfile = uiStore.posProfile;
 					pos_profile.value = null;
 					pos_opening_shift.value = null;
 					uiStore.posOpeningShift = null;
@@ -239,6 +242,9 @@ export function usePosShift(openDialog?: () => void) {
 						title: "POS Shift Closed",
 						color: "success",
 					});
+					if (closedPosProfile?.posa_enable_fiscal_printer) {
+						void fiscalPrinter.printZReport(closedPosProfile);
+					}
 					check_opening_entry();
 				}
 			})

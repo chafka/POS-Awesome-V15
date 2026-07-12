@@ -44,25 +44,24 @@ export function getItemsTableHeaders(context: "pos" | "purchase" | string, posPr
 
     const headers: TableHeader[] = [
         {
-            title: __("Name"),
-            align: "start",
-            sortable: true,
-            key: "item_name",
-        },
-        {
             title: __("Code"),
             align: "start",
             sortable: true,
             key: "item_code",
         },
+        {
+            title: __("Name"),
+            align: "start",
+            sortable: true,
+            key: "item_name",
+        },
         { title: __("Rate"), key: "rate", align: "start" },
         { title: __("Available QTY"), key: "actual_qty", align: "start" },
-        { title: __("UOM"), key: "stock_uom", align: "start" },
     ];
 
     // Remove item code column if configured
     if (posProfile && !posProfile.posa_display_item_code) {
-        headers.splice(1, 1);
+        headers.splice(0, 1);
     }
 
     return headers;

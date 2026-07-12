@@ -13,6 +13,7 @@
 		<!-- Brand Section (left in LTR, right in RTL) -->
 		<div :class="['pos-navbar-brand-section', isRtl ? 'rtl-brand-section' : 'ltr-brand-section']">
 			<v-app-bar-nav-icon
+				v-if="false"
 				ref="navIcon"
 				@click="$emit('nav-click')"
 				:aria-label="__('Toggle navigation drawer')"
@@ -86,8 +87,8 @@
 						</v-tooltip>
 					</v-btn>
 
-					<!-- Notification bell centered between offline invoices and menu -->
-					<div class="notification-wrapper">
+					<!-- Notification bell hidden -->
+					<div class="notification-wrapper" v-if="false">
 						<slot name="notification-bell"></slot>
 					</div>
 
@@ -195,8 +196,8 @@
 						</v-tooltip>
 					</v-btn>
 
-					<!-- Notification bell between offline invoices and menu -->
-					<div class="notification-wrapper">
+					<!-- Notification bell hidden -->
+					<div class="notification-wrapper" v-if="false">
 						<slot name="notification-bell"></slot>
 					</div>
 

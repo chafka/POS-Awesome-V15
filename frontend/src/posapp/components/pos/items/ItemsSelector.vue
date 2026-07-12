@@ -164,7 +164,6 @@
 		<ItemActionToolbar
 			v-model="item_group"
 			:items-group="items_group"
-			v-model:items-view="items_view"
 			:pos-profile="pos_profile"
 			:active-price-list="active_price_list"
 			:offers-count="offersCount"
@@ -1297,6 +1296,8 @@ defineExpose({
 	display: flex;
 	flex-direction: column;
 	gap: var(--dynamic-sm);
+	height: 100%;
+	min-height: 0;
 }
 
 .selection-card {
@@ -1332,12 +1333,30 @@ defineExpose({
 	position: sticky;
 	top: 0;
 	z-index: 8;
+	flex: 0 0 auto;
 }
 
 .selector-results-card {
 	padding: var(--dynamic-xs);
 	overflow: hidden;
 	min-width: 0;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.selector-results-card :deep(.items) {
+	flex: 1 1 auto;
+	min-height: 0;
+	height: 100%;
+}
+
+.selector-results-card :deep(.items > .v-col) {
+	height: 100%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 .dynamic-scroll {

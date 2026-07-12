@@ -145,6 +145,9 @@ import {
 } from "../../../../offline/index";
 import { createBootstrapSnapshotFromRegisterData } from "../../../../offline/bootstrapSnapshot";
 import authService from "../../../services/authService";
+import { useFiscalPrinter } from "../../../composables/core/useFiscalPrinter";
+
+const fiscalPrinter = useFiscalPrinter();
 
 defineOptions({
 	name: "OpeningDialog",
@@ -283,11 +286,28 @@ function submit_dialog() {
 				} catch (e) {
 					console.error("Failed to cache opening data", e);
 				}
+				notifyFiscalCashIn(r.message.pos_profile);
 				// Close handles hiding the dialog, parent handles logic
 				emit("close");
 				is_loading.value = false;
 			}
 		});
+}
+
+function notifyFiscalCashIn(posProfile) {
+	if (!posProfile?.posa_enable_fiscal_printer) {
+		return;
+	}
+
+	const cashRow = payments_methods.value.find((row) =>
+		String(row.mode_of_payment || "")
+			.toLowerCase()
+			.includes("cash"),
+	);
+	const amount = Number(cashRow?.amount || 0);
+	if (amount > 0) {
+		void fiscalPrinter.depositCash(posProfile, amount);
+	}
 }
 
 function go_desk() {

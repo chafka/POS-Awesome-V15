@@ -302,6 +302,7 @@ import { useRedemptionLogic } from "../../composables/pos/payments/useRedemption
 import { usePaymentPrinting } from "../../composables/pos/payments/usePaymentPrinting";
 import { usePaymentMethods } from "../../composables/pos/payments/usePaymentMethods";
 import { useInvoiceDetails } from "../../composables/pos/invoice/useInvoiceDetails";
+import { useFiscalPrinter } from "../../composables/core/useFiscalPrinter";
 import { useFormat } from "../../format";
 import {
 	isOffline,
@@ -614,7 +615,8 @@ const {
 					}
 				}
 			},
-			onSuccess: () => {
+			onSuccess: (_message, submittedDocument) => {
+				triggerFiscalReceiptPrint(submittedDocument);
 				eventBus.emit("focus_item_search");
 			},
 		});
@@ -694,6 +696,15 @@ const { ensureReturnPaymentsAreNegative, restoreReturnPayments, validateSubmissi
 		},
 		currencyPrecision: currency_precision,
 	});
+
+const { printReceipt: printFiscalReceipt } = useFiscalPrinter();
+
+const triggerFiscalReceiptPrint = (submittedDocument) => {
+	if (!pos_profile.value?.posa_enable_fiscal_printer || !submittedDocument) {
+		return;
+	}
+	void printFiscalReceipt(submittedDocument, pos_profile.value);
+};
 
 const isGiftCardPayment = (payment) => {
 	if (!pos_profile.value?.posa_use_gift_cards) {
@@ -1681,7 +1692,8 @@ const submitInvoiceWrapper = async (print, callbackOverrides = {}, options = {})
 					}
 				}
 			},
-			onSuccess: () => {
+			onSuccess: (_message, submittedDocument) => {
+				triggerFiscalReceiptPrint(submittedDocument);
 				customer_credit_dict.value = [];
 				redeem_customer_credit.value = false;
 				is_cashback.value = true;
