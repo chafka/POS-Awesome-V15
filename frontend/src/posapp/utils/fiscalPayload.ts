@@ -12,16 +12,6 @@ const PAYMENT_TYPE_BY_MODE_KEYWORD: Array<[string, string]> = [
 ];
 
 /**
- * TODO: replace with the exact UJP-mandated uniqueSaleNumber format once
- * confirmed against the real PF700 (North Macedonia fiscal rules were not
- * available at implementation time). Currently just printer id + invoice name,
- * which is unique but not necessarily the government-mandated format.
- */
-export function buildUniqueSaleNumber(invoiceDoc: any, printerId: string): string {
-	return `${printerId}-${invoiceDoc?.name || "UNKNOWN"}`;
-}
-
-/**
  * North Macedonia UJP fiscal tax groups - fixed by law, not configurable:
  * А = 18%, Б = 5%, В = 10%, Г = 0% / Exempt.
  */
@@ -67,15 +57,15 @@ function mapPaymentType(modeOfPayment: string): string {
 }
 
 export interface FiscalReceiptPayload {
-	uniqueSaleNumber: string;
 	items: Array<Record<string, any>>;
 	payments: Array<Record<string, any>>;
 }
 
-/** Builds the POST /printers/{id}/receipt body from a submitted invoice document. */
-export function buildReceiptPayload(invoiceDoc: any, posProfile: any): FiscalReceiptPayload {
-	const printerId = String(posProfile?.posa_fiscal_printer_id || "").trim();
-
+/**
+ * Builds the POST /printers/{id}/receipt body from a submitted invoice document.
+ * uniqueSaleNumber is intentionally omitted - not required for North Macedonia.
+ */
+export function buildReceiptPayload(invoiceDoc: any, _posProfile: any): FiscalReceiptPayload {
 	const items = (invoiceDoc?.items || []).map((item: any) => {
 		const rate = getItemVatRate(item);
 		return {
@@ -94,7 +84,6 @@ export function buildReceiptPayload(invoiceDoc: any, posProfile: any): FiscalRec
 		}));
 
 	return {
-		uniqueSaleNumber: buildUniqueSaleNumber(invoiceDoc, printerId),
 		items,
 		payments,
 	};
