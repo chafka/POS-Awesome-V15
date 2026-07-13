@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import now_datetime
+from frappe.utils import get_datetime_str, now_datetime
 
 ALLOWED_DOCTYPES = ("Sales Invoice", "POS Invoice")
 ALLOWED_STATUSES = ("Not Sent", "Success", "Failed")
@@ -37,7 +37,7 @@ def save_fiscal_result(
     values = {}
     if receipt_number is not None:
         values["posa_fiscal_receipt_number"] = receipt_number
-    if fiscal_date is not None:
+    if fiscal_date not in (None, ""):
         values["posa_fiscal_date"] = fiscal_date
     if memory_number is not None:
         values["posa_fiscal_memory_number"] = memory_number
@@ -49,7 +49,18 @@ def save_fiscal_result(
     if not values:
         return {"updated": False}
 
-    values.setdefault("posa_fiscal_date", now_datetime())
-    frappe.db.set_value(doctype, name, values, update_modified=False)
+    values.setdefault("posa_fiscal_date", get_datetime_str(now_datetime()))
+
+    # This only records the outcome of a print that already happened (or
+    # failed) on the fiscal printer; it must never surface as a hard error
+    # to the cashier just because the logging write itself hit a DB issue.
+    try:
+        frappe.db.set_value(doctype, name, values, update_modified=False)
+    except Exception:
+        frappe.log_error(
+            title="Failed to persist fiscal result",
+            message=frappe.get_traceback(),
+        )
+        return {"updated": False}
 
     return {"updated": True}
