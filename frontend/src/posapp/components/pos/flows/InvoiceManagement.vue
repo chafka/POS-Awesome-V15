@@ -38,6 +38,7 @@
 						/>
 						<div class="view-toggle-group">
 							<v-btn
+								class="view-toggle-cards-btn--hidden"
 								:variant="viewMode === 'card' ? 'flat' : 'text'"
 								:color="viewMode === 'card' ? 'primary' : undefined"
 								size="small"
@@ -92,7 +93,7 @@
 								}}</v-chip>
 							</div>
 						</v-tab>
-						<v-tab value="drafts">
+						<v-tab value="drafts" class="invoice-tab--drafts-hidden">
 							<div class="invoice-tab-label">
 								<span>{{ __("Drafts") }}</span>
 								<v-chip size="x-small" variant="flat" color="secondary">{{
@@ -135,6 +136,15 @@
 									hide-details
 									:items="historyStatusItems"
 									:label="__('Status')"
+								/>
+								<v-select
+									v-model="historyFiscalStatus"
+									class="pos-themed-input"
+									variant="outlined"
+									density="compact"
+									hide-details
+									:items="historyFiscalStatusItems"
+									:label="__('Fiscal Status')"
 								/>
 								<v-text-field
 									v-model="historyDateFrom"
@@ -196,13 +206,20 @@
 									</div>
 								</div>
 								<div class="summary-tile summary-tile--success">
-									<div class="summary-tile__label">{{ __("Tendered") }}</div>
+									<div class="summary-tile__label">{{ __("Fiscal Status") }}</div>
 									<div class="summary-tile__value">
 										{{ currencySymbol(posProfile?.currency) }}
-										{{ formatCurrency(historyTotals.paid) }}
+										{{ formatCurrency(historyTotals.fiscalPending) }}
 									</div>
 									<div class="summary-tile__meta">
-										{{ __("Amount received from customer") }}
+										{{ __("Not Sent / Failed") }}
+									</div>
+									<div class="summary-tile__value mt-1">
+										{{ currencySymbol(posProfile?.currency) }}
+										{{ formatCurrency(historyTotals.fiscalSuccess) }}
+									</div>
+									<div class="summary-tile__meta">
+										{{ __("Success") }}
 									</div>
 								</div>
 								<div class="summary-tile summary-tile--danger">
@@ -1516,7 +1533,7 @@ export default {
 	},
 	data: () => ({
 		activeTab: "history",
-		viewMode: "card",
+		viewMode: "list",
 		loading: false,
 		pageSize: TAB_PAGE_SIZE,
 		tabPages: {
@@ -1531,6 +1548,7 @@ export default {
 		partialDateTo: "",
 		historySearch: "",
 		historyStatus: "All",
+		historyFiscalStatus: "All",
 		historyDateFrom: "",
 		historyDateTo: "",
 		historyShowRepairCandidatesOnly: false,
@@ -1561,6 +1579,7 @@ export default {
 		selectedInvoiceDetail: null,
 		partialStatusItems: ["All", "Partly Paid", "Unpaid", "Overdue"],
 		historyStatusItems: ["All", "Paid", "Partly Paid", "Unpaid", "Overdue", "Credit Note Issued"],
+		historyFiscalStatusItems: ["All", "Not Sent", "Success", "Failed"],
 		partialHeaders: [
 			{ title: __("Invoice"), key: "name" },
 			{ title: __("Customer"), key: "customer_name" },
@@ -1680,6 +1699,7 @@ export default {
 					this.historyStatus,
 					this.historyDateFrom,
 					this.historyDateTo,
+					this.historyFiscalStatus,
 				),
 			);
 		},
@@ -1692,6 +1712,7 @@ export default {
 				this.historyStatus,
 				this.historyDateFrom,
 				this.historyDateTo,
+				this.historyFiscalStatus,
 			).length;
 		},
 		filteredDraftInvoices() {
@@ -1735,9 +1756,15 @@ export default {
 					accumulator.paid += Number(invoice.paid_amount || 0);
 					accumulator.change_return += Number(invoice.change_amount || 0);
 					accumulator.outstanding += Number(invoice.outstanding_amount || 0);
+					const fiscalStatus = String(invoice.posa_fiscal_status || "Not Sent");
+					if (fiscalStatus === "Success") {
+						accumulator.fiscalSuccess += Number(invoice.grand_total || 0);
+					} else {
+						accumulator.fiscalPending += Number(invoice.grand_total || 0);
+					}
 					return accumulator;
 				},
-				{ gross: 0, paid: 0, change_return: 0, outstanding: 0 },
+				{ gross: 0, paid: 0, change_return: 0, outstanding: 0, fiscalPending: 0, fiscalSuccess: 0 },
 			);
 		},
 		unpaidStatusCounts() {
@@ -1940,7 +1967,7 @@ export default {
 			if (toDate && value > toDate) return false;
 			return true;
 		},
-		filterCollection(items, search, status, fromDate, toDate) {
+		filterCollection(items, search, status, fromDate, toDate, fiscalStatus = "All") {
 			const needle = String(search || "")
 				.trim()
 				.toLowerCase();
@@ -1963,6 +1990,10 @@ export default {
 					if (!haystack.some((entry) => entry.includes(needle))) return false;
 				}
 				if (status && status !== "All" && String(item.status || "") !== status) return false;
+				if (fiscalStatus && fiscalStatus !== "All") {
+					const itemFiscalStatus = String(item.posa_fiscal_status || "Not Sent");
+					if (itemFiscalStatus !== fiscalStatus) return false;
+				}
 				return this.inRange(
 					item.posting_date,
 					this.normalizeDate(fromDate),
@@ -2478,6 +2509,7 @@ export default {
 									"change_amount",
 									"is_return",
 									"return_against",
+									"posa_fiscal_status",
 								]),
 								order_by: "posting_date desc, posting_time desc, modified desc",
 								limit_page_length: 0,
@@ -2773,6 +2805,14 @@ export default {
 </script>
 
 <style scoped>
+.view-toggle-cards-btn--hidden {
+	display: none !important;
+}
+
+.invoice-tab--drafts-hidden {
+	display: none !important;
+}
+
 .invoice-management-dialog-content {
 	background: transparent !important;
 }
