@@ -377,7 +377,6 @@ fixtures = [
                     "POS Profile-posa_enable_fiscal_printer",
                     "POS Profile-posa_fiscal_printer_url",
                     "POS Profile-posa_fiscal_printer_id",
-                    "POS Profile-posa_fiscal_tax_group_mapping",
                     "Sales Invoice-posa_fiscal_receipt_number",
                     "Sales Invoice-posa_fiscal_date",
                     "Sales Invoice-posa_fiscal_memory_number",

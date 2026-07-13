@@ -44,7 +44,7 @@
 			</v-btn>
 		</v-col>
 
-		<v-col cols="12" sm="6" v-if="pos_profile.posa_allow_return == 1">
+		<v-col cols="12" sm="6" v-if="pos_profile.posa_allow_return == 1" class="sales-return-btn-hidden">
 			<v-btn
 				block
 				color="secondary"
@@ -143,6 +143,10 @@ const showCustomerDisplayButton = computed(() =>
 /* Hidden by default; open via the F12 shortcut instead of a visible button. */
 .invoice-mgmt-btn-hidden {
 	display: none;
+}
+
+.sales-return-btn-hidden {
+	display: none !important;
 }
 
 .white-text-btn {

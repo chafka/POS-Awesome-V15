@@ -37,15 +37,6 @@ FIELDS_BY_DOCTYPE = {
             "description": "Printer id configured in ErpNet.FP (e.g. the 'pf700' key under Printers in its config).",
             "insert_after": "posa_fiscal_printer_url",
         },
-        {
-            "fieldname": "posa_fiscal_tax_group_mapping",
-            "label": "Fiscal Tax Group Mapping",
-            "fieldtype": "Table",
-            "options": "POS Fiscal Tax Group Mapping",
-            "depends_on": "eval:doc.posa_enable_fiscal_printer==1",
-            "description": "Map each VAT rate used on items to the fiscal printer's tax group (1-8).",
-            "insert_after": "posa_fiscal_printer_id",
-        },
     ],
     "Sales Invoice": [
         {

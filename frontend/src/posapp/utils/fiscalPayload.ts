@@ -22,19 +22,28 @@ export function buildUniqueSaleNumber(invoiceDoc: any, printerId: string): strin
 }
 
 /**
- * Looks up the configured fiscal tax group (1-8) for a given VAT rate.
- * Throws if the rate has no mapping row - a fiscal receipt with the wrong
- * tax group is a compliance problem, so this must not fail silently.
+ * North Macedonia UJP fiscal tax groups - fixed by law, not configurable:
+ * А = 18%, Б = 5%, В = 10%, Г = 0% / Exempt.
  */
-export function mapFiscalTaxGroup(rate: number, mappingRows: Array<Record<string, any>>): number {
-	const rows = Array.isArray(mappingRows) ? mappingRows : [];
-	const match = rows.find((row) => Math.abs(Number(row.tax_rate) - rate) < 0.01);
+const MK_FISCAL_TAX_GROUP_BY_RATE: Array<[number, number]> = [
+	[18, 1], // А
+	[5, 2], // Б
+	[10, 3], // В
+	[0, 4], // Г (Exempt)
+];
+
+/**
+ * Looks up the fiscal tax group (1-4) for a given VAT rate.
+ * Throws if the rate doesn't match one of the four legal groups - a fiscal
+ * receipt with the wrong tax group is a compliance problem, so this must
+ * not fail silently.
+ */
+export function mapFiscalTaxGroup(rate: number): number {
+	const match = MK_FISCAL_TAX_GROUP_BY_RATE.find(([groupRate]) => Math.abs(groupRate - rate) < 0.01);
 	if (!match) {
-		throw new Error(
-			`No fiscal tax group configured for VAT rate ${rate}%. Add it under POS Profile > Fiscal Printer > Fiscal Tax Group Mapping.`,
-		);
+		throw new Error(`No fiscal tax group for VAT rate ${rate}%. Expected 18%, 10%, 5%, or 0%/Exempt.`);
 	}
-	return Number(match.fiscal_tax_group);
+	return match[1];
 }
 
 /** Sums the percentages in an item's `item_tax_rate` JSON (standard ERPNext field), or 0. */
@@ -66,7 +75,6 @@ export interface FiscalReceiptPayload {
 /** Builds the POST /printers/{id}/receipt body from a submitted invoice document. */
 export function buildReceiptPayload(invoiceDoc: any, posProfile: any): FiscalReceiptPayload {
 	const printerId = String(posProfile?.posa_fiscal_printer_id || "").trim();
-	const mappingRows = posProfile?.posa_fiscal_tax_group_mapping || [];
 
 	const items = (invoiceDoc?.items || []).map((item: any) => {
 		const rate = getItemVatRate(item);
@@ -74,7 +82,7 @@ export function buildReceiptPayload(invoiceDoc: any, posProfile: any): FiscalRec
 			text: item.item_name || item.item_code,
 			quantity: Number(item.qty || 1),
 			unitPrice: Number(item.rate || 0),
-			taxGroup: mapFiscalTaxGroup(rate, mappingRows),
+			taxGroup: mapFiscalTaxGroup(rate),
 		};
 	});
 
