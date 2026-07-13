@@ -90,6 +90,12 @@ export function useFiscalPrinter() {
 		return result;
 	}
 
+	async function printPeriodicReport(posProfile: any, startDate: string, endDate: string) {
+		const result = await fiscalPrinterService.printPeriodicReport(posProfile, startDate, endDate);
+		showResultToast(__("Periodic Report"), result);
+		return result;
+	}
+
 	async function getCashAmount(posProfile: any) {
 		const result = await fiscalPrinterService.getCashAmount(posProfile);
 		if (result.ok) {
@@ -112,5 +118,6 @@ export function useFiscalPrinter() {
 		withdrawCash,
 		printDuplicate,
 		getCashAmount,
+		printPeriodicReport,
 	};
 }

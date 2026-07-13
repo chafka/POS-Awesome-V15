@@ -351,6 +351,45 @@
 		</v-card>
 	</v-dialog>
 
+	<!-- Periodic (date range) Fiscal Report Dialog -->
+	<v-dialog v-model="showPeriodicReportDialog" max-width="360" persistent>
+		<v-card class="pos-themed-card">
+			<v-card-title class="text-h6 d-flex align-center">
+				<v-icon start color="primary" class="mr-2">mdi-calendar-range</v-icon>
+				{{ __("Periodic Report") }}
+			</v-card-title>
+
+			<v-card-text>
+				<v-text-field
+					v-model="periodicReportStartDate"
+					type="date"
+					:label="__('Start Date')"
+					variant="outlined"
+					density="compact"
+					autofocus
+					class="mb-2"
+				/>
+				<v-text-field
+					v-model="periodicReportEndDate"
+					type="date"
+					:label="__('End Date')"
+					variant="outlined"
+					density="compact"
+				/>
+			</v-card-text>
+
+			<v-card-actions class="pa-4 pt-0">
+				<v-spacer />
+				<v-btn color="grey" variant="text" @click="closePeriodicReportDialog" :disabled="periodicReportSubmitting">
+					{{ __("Cancel") }}
+				</v-btn>
+				<v-btn color="primary" :loading="periodicReportSubmitting" @click="submitPeriodicReport">
+					{{ __("Confirm") }}
+				</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
 	<!-- Fiscal Printer Action Confirmation Dialog -->
 	<v-dialog v-model="showFiscalConfirmDialog" max-width="360" persistent>
 		<v-card class="pos-themed-card">
@@ -445,6 +484,10 @@ export default {
 			cashAmountMode: "in",
 			cashAmountValue: null,
 			cashAmountSubmitting: false,
+			showPeriodicReportDialog: false,
+			periodicReportStartDate: null,
+			periodicReportEndDate: null,
+			periodicReportSubmitting: false,
 			showFiscalConfirmDialog: false,
 			fiscalConfirmTitle: "",
 			fiscalConfirmMessage: "",
@@ -558,6 +601,16 @@ export default {
 							icon: "mdi-file-chart-outline",
 							tone: "info",
 							handler: "xReportAction",
+						}
+					: null,
+				fiscalEnabled
+					? {
+							id: "periodic-report",
+							label: __("Periodic Report"),
+							subtitle: __("Print a report for a date range"),
+							icon: "mdi-calendar-range",
+							tone: "info",
+							handler: "periodicReportAction",
 						}
 					: null,
 				fiscalEnabled
@@ -853,6 +906,9 @@ export default {
 						() => this.fiscalPrinter.getCashAmount(this.posProfile),
 					);
 					break;
+				case "periodicReportAction":
+					this.openPeriodicReportDialog();
+					break;
 				case "cashInAction":
 					this.openCashAmountDialog("in");
 					break;
@@ -933,6 +989,38 @@ export default {
 				this.closeCashAmountDialog();
 			} finally {
 				this.cashAmountSubmitting = false;
+			}
+		},
+		openPeriodicReportDialog() {
+			this.closeMenu();
+			const today = frappe.datetime.nowdate();
+			this.periodicReportStartDate = today;
+			this.periodicReportEndDate = today;
+			this.showPeriodicReportDialog = true;
+		},
+		closePeriodicReportDialog() {
+			this.showPeriodicReportDialog = false;
+		},
+		async submitPeriodicReport() {
+			if (!this.periodicReportStartDate || !this.periodicReportEndDate) {
+				this.showNotification("Select both a start and end date", "error");
+				return;
+			}
+			if (this.periodicReportStartDate > this.periodicReportEndDate) {
+				this.showNotification("Start date must not be after end date", "error");
+				return;
+			}
+
+			this.periodicReportSubmitting = true;
+			try {
+				await this.fiscalPrinter.printPeriodicReport(
+					this.posProfile,
+					this.periodicReportStartDate,
+					this.periodicReportEndDate,
+				);
+				this.closePeriodicReportDialog();
+			} finally {
+				this.periodicReportSubmitting = false;
 			}
 		},
 		confirmFiscalAction(title, message, action) {

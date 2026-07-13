@@ -136,6 +136,13 @@ const fiscalPrinterService = {
 		return withConfig(posProfile, (config) => postJson(config, "duplicate"));
 	},
 
+	/** startDate/endDate are "YYYY-MM-DD" strings. Not all fiscal printers support this. */
+	printPeriodicReport(posProfile: any, startDate: string, endDate: string) {
+		return withConfig(posProfile, (config) =>
+			postJson(config, "periodicreport", { startDate, endDate }),
+		);
+	},
+
 	getCashAmount(posProfile: any) {
 		return withConfig(posProfile, (config) => requestWithRetry(endpoint(config, "cash"), { method: "GET" }));
 	},
