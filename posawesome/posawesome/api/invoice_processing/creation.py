@@ -1127,7 +1127,7 @@ def update_invoice(data):
             item.base_rate = flt(item.rate * conversion_rate, item.precision("base_rate"))
         if item.amount:
             item.base_amount = flt(item.amount * conversion_rate, item.precision("base_amount"))
-        if item.discount_amount:
+        if item.discount_amount and item.meta.get_field("base_discount_amount"):
             item.base_discount_amount = flt(
                 item.discount_amount * conversion_rate,
                 item.precision("base_discount_amount"),
