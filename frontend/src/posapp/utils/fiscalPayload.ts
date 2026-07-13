@@ -99,10 +99,13 @@ export function buildReceiptPayload(invoiceDoc: any, _posProfile: any): FiscalRe
 		};
 	});
 
+	// Sign is preserved (not Math.abs'd): a return invoice's items total is
+	// negative, and the fiscal printer requires the payment total to match it
+	// exactly, so a return's payment amount must be negative too.
 	const payments = (invoiceDoc?.payments || [])
 		.filter((payment: any) => Number(payment.amount || 0) !== 0)
 		.map((payment: any) => ({
-			amount: Math.abs(Number(payment.amount || 0)),
+			amount: Number(payment.amount || 0),
 			paymentType: mapPaymentType(payment.mode_of_payment),
 		}));
 
