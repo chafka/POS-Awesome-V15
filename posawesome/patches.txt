@@ -30,3 +30,4 @@ posawesome.patches.add_fast_counter_mode_settings
 posawesome.patches.repair_fast_pos_performance_indexes
 posawesome.patches.add_fiscal_printer_settings
 posawesome.patches.remove_fiscal_tax_group_mapping
+posawesome.patches.fix_empty_fiscal_date_values

@@ -24,6 +24,14 @@ def validate(doc, method):
     auto_set_delivery_charges(doc)
     calc_delivery_charges(doc)
     apply_tax_inclusive(doc)
+    normalize_fiscal_date(doc)
+
+
+def normalize_fiscal_date(doc):
+    # New docs (and the standard desk "New" form) initialize custom Datetime
+    # fields to "" rather than None, which MariaDB rejects outright.
+    if doc.get("posa_fiscal_date") == "":
+        doc.posa_fiscal_date = None
 
 
 def before_submit(doc, method):
