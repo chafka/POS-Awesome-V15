@@ -37,7 +37,7 @@ export function mapFiscalTaxGroup(rate: number): number {
 }
 
 /** Sums the percentages in an item's `item_tax_rate` JSON (standard ERPNext field), or 0. */
-function getItemVatRate(item: Record<string, any>): number {
+function getItemTaxTemplateRate(item: Record<string, any>): number {
 	if (!item?.item_tax_rate) {
 		return 0;
 	}
@@ -48,6 +48,23 @@ function getItemVatRate(item: Record<string, any>): number {
 	} catch {
 		return 0;
 	}
+}
+
+/** Sums the rate of the invoice's Sales Taxes and Charges rows - the overall invoice VAT rate. */
+function getInvoiceTaxRate(invoiceDoc: any): number {
+	const taxes = Array.isArray(invoiceDoc?.taxes) ? invoiceDoc.taxes : [];
+	return taxes.reduce((sum: number, tax: any) => sum + Number(tax?.rate || 0), 0);
+}
+
+/**
+ * Effective VAT rate for an item: prefers a per-item tax template rate, and
+ * falls back to the invoice-level tax rate when the item has none set (common
+ * when a single flat-rate tax template is applied at invoice level rather
+ * than per item).
+ */
+function getItemVatRate(item: Record<string, any>, invoiceTaxRate: number): number {
+	const itemRate = getItemTaxTemplateRate(item);
+	return itemRate > 0 ? itemRate : invoiceTaxRate;
 }
 
 function mapPaymentType(modeOfPayment: string): string {
@@ -66,12 +83,18 @@ export interface FiscalReceiptPayload {
  * uniqueSaleNumber is intentionally omitted - not required for North Macedonia.
  */
 export function buildReceiptPayload(invoiceDoc: any, _posProfile: any): FiscalReceiptPayload {
+	const invoiceTaxRate = getInvoiceTaxRate(invoiceDoc);
+
 	const items = (invoiceDoc?.items || []).map((item: any) => {
-		const rate = getItemVatRate(item);
+		const rate = getItemVatRate(item, invoiceTaxRate);
+		const netUnitPrice = Number(item.rate || 0);
+		// The fiscal printer expects the tax-inclusive (final retail) price,
+		// so the sum of item totals matches the tax-inclusive payment total.
+		const grossUnitPrice = Math.round(netUnitPrice * (1 + rate / 100) * 100) / 100;
 		return {
 			text: item.item_name || item.item_code,
 			quantity: Number(item.qty || 1),
-			unitPrice: Number(item.rate || 0),
+			unitPrice: grossUnitPrice,
 			taxGroup: mapFiscalTaxGroup(rate),
 		};
 	});
