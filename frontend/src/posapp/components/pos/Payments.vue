@@ -616,7 +616,9 @@ const {
 				}
 			},
 			onSuccess: (_message, submittedDocument) => {
-				triggerFiscalReceiptPrint(submittedDocument);
+				if (submitPrint) {
+					triggerFiscalReceiptPrint(submittedDocument);
+				}
 				eventBus.emit("focus_item_search");
 			},
 		});
@@ -1693,7 +1695,9 @@ const submitInvoiceWrapper = async (print, callbackOverrides = {}, options = {})
 				}
 			},
 			onSuccess: (_message, submittedDocument) => {
-				triggerFiscalReceiptPrint(submittedDocument);
+				if (print) {
+					triggerFiscalReceiptPrint(submittedDocument);
+				}
 				customer_credit_dict.value = [];
 				redeem_customer_credit.value = false;
 				is_cashback.value = true;
